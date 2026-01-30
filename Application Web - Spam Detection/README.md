@@ -7,6 +7,7 @@ Membres du groupe :
   - RANDRIANANTENAINA Jean Carlos IMTICIA 5 : Hébergement de l'application Web
   - RANDRIAMANALINA Lalaina Jimmy IMTICIA 5 : Création du dataset en français
   - RAHELIMALALA Anja Nasandratra IGGLIA 5 : Création du dataset en français
+*tous les IMTICIA ne sont pas encore inscrits et donc n'ont pas encore de numéro
 
 Technologies : 
   -Python pour l'entrainement du modèle et backend de l'application web
