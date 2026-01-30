@@ -29,4 +29,4 @@ Lien vers l'application : https://huggingface.co/spaces/takion02/TP_ML
 
 Lien du modèle : https://colab.research.google.com/drive/1xDbYjim81XpWFSP0wZM48l3N3wVjwOPK
 
-Vidéo : Dans le repository
+Vidéo : https://drive.google.com/file/d/1HkdQhdtUtebbb6Erv7GGUR1yczDdX_Nd/view?usp=drive_link
