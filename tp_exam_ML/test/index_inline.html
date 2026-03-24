@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autocomplétion Malagasy - Inline Suggestions</title>
+    
+    <!-- Quill.js CSS -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .editor-section {
+            margin-bottom: 30px;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        #editor {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            min-height: 250px;
+            padding: 15px;
+            font-size: 16px;
+        }
+        
+        .ql-toolbar {
+            border-radius: 8px 8px 0 0 !important;
+            border: 2px solid #e0e0e0 !important;
+            border-bottom: 1px solid #e0e0e0 !important;
+        }
+        
+        .ql-container {
+            border-radius: 0 0 8px 8px !important;
+            font-size: 16px !important;
+        }
+        
+        .suggestions-section {
+            margin-top: 25px;
+        }
+        
+        .suggestions-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .keyboard-shortcuts {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #555;
+        }
+        
+        .keyboard-shortcuts strong {
+            color: #667eea;
+        }
+        
+        .keyboard-shortcuts p {
+            margin: 5px 0;
+        }
+        
+        .context-display {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .context-display strong {
+            color: #667eea;
+        }
+        
+        .status {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .status.loading {
+            color: #667eea;
+        }
+        
+        .status.error {
+            color: #e74c3c;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .suggestion-overlay {
+            position: absolute;
+            color: #999;
+            opacity: 0.5;
+            font-style: italic;
+            pointer-events: none;
+            white-space: nowrap;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 16px;
+            display: none;
+            z-index: 10;
+            line-height: 1.42;
+        }
+        
+        .suggestion-overlay.visible {
+            display: block;
+        }
+        
+        .editor-wrapper {
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Autocomplétion Malagasy - Inline Mode</h1>
+        <p class="subtitle">Écrivez en malgache et obtenez des suggestions intelligentes en temps réel</p>
+        
+        <div class="editor-section">
+            <label for="editor">Éditeur de texte</label>
+            <div class="editor-wrapper" id="editor-wrapper">
+                <div id="editor"></div>
+                <div class="suggestion-overlay" id="suggestion-overlay"></div>
+            </div>
+            <div class="context-display">
+                <strong>Contexte courant :</strong> <span id="context-text">-</span>
+            </div>
+            <div class="status" id="status"></div>
+            <div class="keyboard-shortcuts">
+                <p><strong>⌨️ Raccourcis clavier :</strong></p>
+                <p>• <strong>Tab</strong> ou <strong>Ctrl+→</strong> : Accepter la suggestion</p>
+                <p>• <strong>Esc</strong> : Rejeter la suggestion</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Made with ❤️ | ML Autocompletion System - Inline Suggestions
+        </div>
+    </div>
+
+    <!-- Quill.js JS -->
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    
+    <script>
+        // Initialize Quill editor
+        const quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Tapez votre texte en malgache... (Tab ou Ctrl+→ pour accepter)',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    ['blockquote', 'code-block'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }]
+                ]
+            }
+        });
+        
+        let debounceTimer;
+        let currentSuggestion = null;
+        const overlayEl = document.getElementById('suggestion-overlay');
+        const editorEl = document.getElementById('editor');
+        const editorWrapper = document.getElementById('editor-wrapper');
+        
+        // Track cursor position for overlay
+        let lastCursorBounds = null;
+        
+        // Text change event
+        quill.on('text-change', async () => {
+            clearTimeout(debounceTimer);
+            
+            const text = quill.getText().trim();
+            const words = text.split(/\s+/).filter(Boolean);
+            
+            // On prend les 2 derniers mots comme contexte
+            const context = words.slice(-2);
+            
+            // Update context display
+            const contextDisplay = document.getElementById('context-text');
+            contextDisplay.textContent = context.length > 0 ? JSON.stringify(context) : '-';
+            
+            if (context.length === 0) {
+                clearOverlay();
+                return;
+            }
+            
+            // Debounce API call
+            debounceTimer = setTimeout(async () => {
+                try {
+                    setStatus('loading', '🔄 Chargement...');
+                    
+                    const response = await fetch('/api/predict', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ context })
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    const suggestions = data.suggestions || [];
+                    
+                    if (suggestions.length > 0) {
+                        currentSuggestion = suggestions[0];
+                        displayInlineSuggestion(currentSuggestion);
+                        setStatus('', '');
+                    } else {
+                        clearOverlay();
+                        setStatus('', '');
+                    }
+                    
+                } catch (err) {
+                    console.error("Erreur prédiction :", err);
+                    setStatus('error', '❌ Erreur de prédiction');
+                    clearOverlay();
+                }
+            }, 300); // Debounce 300ms
+        });
+        
+        // Cursor position tracking for positioning overlay
+        quill.on('selection-change', (range) => {
+            if (range && currentSuggestion) {
+                updateOverlayPosition(range.index);
+            }
+        });
+        
+        function displayInlineSuggestion(suggestion) {
+            overlayEl.textContent = suggestion;
+            overlayEl.classList.add('visible');
+            
+            // Get cursor position for overlay positioning
+            const selection = quill.getSelection();
+            if (selection) {
+                updateOverlayPosition(selection.index);
+            }
+        }
+        
+        function updateOverlayPosition(index) {
+            try {
+                const bounds = quill.getBounds(index);
+                if (bounds) {
+                    // Position overlay relative to editor wrapper
+                    const editorRect = editorEl.getBoundingClientRect();
+                    const wrapperRect = editorWrapper.getBoundingClientRect();
+                    
+                    overlayEl.style.top = (bounds.top) + 'px';
+                    overlayEl.style.left = (bounds.left) + 'px';
+                    lastCursorBounds = bounds;
+                }
+            } catch (e) {
+                console.log('Position update error:', e);
+            }
+        }
+        
+        function clearOverlay() {
+            overlayEl.classList.remove('visible');
+            overlayEl.textContent = '';
+            currentSuggestion = null;
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (!currentSuggestion) return;
+            
+            const selection = quill.getSelection();
+            if (!selection) return;
+            
+            // Tab ou Ctrl+Right arrow : accepter la suggestion
+            if ((e.key === 'Tab' || (e.ctrlKey && e.key === 'ArrowRight'))) {
+                e.preventDefault();
+                quill.insertText(selection.index, currentSuggestion + ' ');
+                quill.setSelection(selection.index + currentSuggestion.length + 1);
+                clearOverlay();
+            }
+            // Escape : rejeter la suggestion
+            else if (e.key === 'Escape') {
+                clearOverlay();
+            }
+        });
+        
+        function setStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = 'status ' + type;
+        }
+    </script>
+</body>
+</html>
